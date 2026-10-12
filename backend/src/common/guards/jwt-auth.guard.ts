@@ -50,6 +50,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (roles?.length && !roles.includes(user.role)) throw ApiException.insufficientRole();
 
     const flag = this.getMeta<StrategyFlag>(STRATEGY_FLAG_KEY, context);
+    if (flag && ['can_submit_info', 'can_post_forum', 'can_comment', 'can_create_profile'].includes(flag) && user.status === 'posting_restricted') throw ApiException.accountRestricted();
     if (flag && !(await this.roleService.userHasFlag(user, flag))) throw ApiException.featureDisabled(flag);
 
     return true;

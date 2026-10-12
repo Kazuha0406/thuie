@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/common/highlight";
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -120,8 +121,8 @@ function SearchInner() {
                         <div className="flex items-center gap-2 text-xs text-muted">
                           <span className="uppercase tracking-wide">{item.type}</span>
                         </div>
-                        <Typography type="h6">{item.title}</Typography>
-                        {item.snippet && <p className="line-clamp-2 text-sm text-muted">{item.snippet}</p>}
+                        <Typography type="h6"><Highlight text={item.title} query={q} /></Typography>
+                        {item.snippet && <p className="line-clamp-2 text-sm text-muted"><Highlight text={item.snippet} query={q} /></p>}
                       </Card.Content>
                     </Card>
                   </Link>

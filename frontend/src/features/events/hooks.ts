@@ -46,7 +46,7 @@ const settleRegistration = (qc: ReturnType<typeof useQueryClient>, id: string) =
 export const useRegisterEvent = (id: string) => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => eventsApi.register(id),
+    mutationFn: (body: { participant_name: string; contact: string; notes?: string }) => eventsApi.register(id, body),
     onSuccess: () => {
       settleRegistration(qc, id);
       toastSuccess(getDict().eventDetail.registerSuccess);

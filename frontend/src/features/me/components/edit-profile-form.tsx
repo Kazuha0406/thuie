@@ -19,7 +19,7 @@ import type { UserUpdate, Visibility } from "@/lib/api/types";
  * out of AccountTab so the hub stays a read-only view (mirrors /me/alumni).
  */
 export function EditProfileForm() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { data: me, isLoading, isError, error, refetch } = useMe();
   const update = useUpdateMe();
@@ -39,7 +39,7 @@ export function EditProfileForm() {
 
   React.useEffect(() => {
     if (me && !loaded) {
-      setForm({ name: me.name, bio: me.bio ?? undefined, grade_year: me.grade_year ?? undefined });
+      setForm({ name: me.name, bio: me.bio ?? undefined, grade_year: me.grade_year ?? undefined, graduation_year: me.graduation_year ?? undefined, graduated: me.role === "graduate" });
       setEmailVis(me.email_visibility ?? "admin_only");
       setPhoneVis(me.phone_visibility ?? "admin_only");
       setWechat(me.wechat ?? "");
@@ -134,6 +134,9 @@ export function EditProfileForm() {
                 <Label>{t.common.name}</Label>
                 <Input value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} />
               </TextField>
+              {!me.role.startsWith("admin") && <label className="flex items-center gap-2"><input type="checkbox" checked={form.graduated ?? false} onChange={e => set("graduated", e.target.checked)} />{locale === "zh" ? "已毕业" : "Graduated"}</label>}
+              <TextField name="grade_year"><Label>{locale === "zh" ? "入学年份" : "Enrollment year"}</Label><Input maxLength={9} value={form.grade_year ?? ""} onChange={e => set("grade_year", e.target.value)} /></TextField>
+              <TextField name="graduation_year"><Label>{locale === "zh" ? "毕业年份" : "Graduation year"}</Label><Input maxLength={9} value={form.graduation_year ?? ""} onChange={e => set("graduation_year", e.target.value)} /></TextField>
               <TextField name="bio">
                 <Label>{t.common.bio}</Label>
                 <TextArea rows={4} value={form.bio ?? ""} onChange={(e) => set("bio", e.target.value)} />

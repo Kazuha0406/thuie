@@ -1,5 +1,6 @@
 "use client";
 
+import { ModerationDrawer, type PreviewTarget } from "@/components/common/moderation-drawer";
 import * as React from "react";
 import {
   Avatar,
@@ -34,6 +35,7 @@ const OUTCOMES: Outcome[] = ["ignored", "deleted", "restricted"];
 
 export default function AdminReportsPage() {
   const { t } = useI18n();
+  const [preview, setPreview] = React.useState<PreviewTarget | null>(null);
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(50);
   const [status, setStatus] = React.useState<string>("open");
@@ -139,6 +141,7 @@ export default function AdminReportsPage() {
 
   return (
     <div className="space-y-4">
+      <ModerationDrawer target={preview} onClose={() => setPreview(null)} />
       <div className="flex flex-wrap items-center gap-3">
         <Button isIconOnly size="sm" variant="tertiary" isPending={isFetching} aria-label={t.common.refresh} onPress={() => refetch()}>
           {({ isPending }) => (isPending ? <Spinner color="current" size="sm" /> : <RefreshCw size={16} />)}
@@ -258,7 +261,7 @@ export default function AdminReportsPage() {
                       </div>
                     </Table.Cell>
                     <Table.Cell className="whitespace-nowrap text-muted">
-                      {t.admin.reports.targetTypes[r.target_type] ?? r.target_type.replace("_", " ")}
+                      <button className="text-left text-accent hover:underline" onClick={() => setPreview({ type: r.target_type, id: r.target_id, reportId: r.id, reason: r.reason, reportStatus: r.status })}>{r.target_title || `${t.admin.reports.targetTypes[r.target_type] ?? r.target_type} #${r.target_id}`}</button>
                     </Table.Cell>
                     <Table.Cell>
                       <StatusChip status={r.status} />

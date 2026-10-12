@@ -127,10 +127,53 @@ tsvector FTS, etc.), see the "Build deviations" table in
 ## Notes
 
 - TypeORM `synchronize` is **off** — schema changes go through `backend/database/init/*.sql`
-  and are applied by `make db-reset`.
+  and existing databases are upgraded with `cd backend && npm run db:migrate`.
+  `db:reset` destroys existing data; use it only for an intentional fresh start.
 - The web client reverse-proxies `/api/v1/*` to the API (`frontend/next.config.mjs`), so
   the browser stays same-origin; `CORS_ORIGINS` is only needed by clients that call the
   API directly (Flutter).
 - Run **exactly one** `dev-backend`: a second server can't bind `:5000`, stays silent,
   and keeps serving the `dist/` snapshot it loaded at boot — which reads as "my backend
   changes had no effect".
+
+## MVP feedback changes (web)
+
+中文页面改动清单、操作流程和复测方法见 [MVP 修改与使用说明](docs/MVP修改与使用说明.md)。
+
+- `/feed` combines information, discussions and events, with tag filters, search
+  highlighting, publication-date sorting and like-count sorting. `/feed/new` is
+  the shared publisher; selecting Events adds scheduling and registration settings.
+  Existing detail URLs remain valid.
+- Members share publishing, commenting, profile and content-access permissions.
+  Graduation is editable profile information. The existing `student` / `graduate`
+  values remain on the wire for compatibility, but use the same member policy.
+- Information and events now support likes and moderated comments. Liker identities
+  are not returned. Author links open member profiles with a private-message action.
+- Event registration collects participant name, contact and optional notes.
+  Only the organizer and administrators can retrieve those details.
+- Administrators land on `/admin/review`. Review and report titles open a drawer
+  containing full text, attachments, submitter and decision actions. Event text
+  also passes keyword moderation; pending events remain private until approved.
+- Registration includes password confirmation; login and registration retain their
+  explicit password visibility buttons after errors.
+
+For an existing database, back it up, run `npm run db:migrate` from `backend`,
+then restart the backend. Applied migrations are recorded in `schema_migrations`.
+This upgrade does not reset or reseed existing content.
+
+Validation (with the seeded local API running):
+
+```sh
+cd backend
+node node_modules/typescript/bin/tsc -p tsconfig.build.json --incremental false
+npm run test:mvp
+cd ../frontend
+npm run typecheck
+```
+
+The smoke test targets localhost, creates uniquely named content, checks member
+permissions, publishing, filtering, likes, moderation, previews, registration
+capacity and privacy, and removes its content fixtures. Demo authentication and
+moderation audit records may remain. The Flutter UI is unchanged in this web
+iteration; its registration client must supply `participant_name` and `contact`
+when calling `POST /events/:id/register` against this updated API.

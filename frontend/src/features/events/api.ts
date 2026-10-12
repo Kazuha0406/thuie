@@ -30,8 +30,8 @@ export const eventsApi = {
   create: (body: EventCreate) => api.post<CampusEvent>("/events", body),
   update: (id: string, body: EventCreate) =>
     api.patch<CampusEvent>(`/events/${id}`, body),
-  register: (id: string) =>
-    api.post<{ registered: boolean; event_id: string }>(`/events/${id}/register`),
+  register: (id: string, body: { participant_name: string; contact: string; notes?: string }) =>
+    api.post<{ registered: boolean; event_id: string }>(`/events/${id}/register`, body),
   cancel: (id: string) =>
     api.del<{ cancelled: boolean }>(`/events/${id}/register`),
   ticket: (id: string) => api.get<Ticket>(`/events/${id}/ticket`),

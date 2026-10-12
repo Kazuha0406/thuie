@@ -25,7 +25,7 @@ export type EventType =
   | "ceremony"
   | "sports"
   | "other";
-export type EventStatus = "draft" | "published" | "cancelled" | "archived";
+export type EventStatus = "pending" | "rejected" | "draft" | "published" | "cancelled" | "archived";
 export type ConnectionStatus = "pending" | "accepted" | "declined" | "revoked";
 export type KeywordAction = "block" | "manual_review";
 export type MentorshipStatus =
@@ -49,6 +49,7 @@ export type NotificationType =
   | "broadcast";
 export type FavoriteTargetType = "info" | "profile" | "post" | "comment";
 export type ModerationTargetType =
+  | "event"
   | "info_post"
   | "forum_post"
   | "comment"
@@ -158,6 +159,7 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  confirm_password?: string;
   name: string;
   role: "student" | "graduate";
   student_id?: string;
@@ -590,6 +592,8 @@ export interface MediaUpload {
 
 // ---------------------------------------------------------------- users -----
 export interface UserUpdate {
+  graduation_year?: string;
+  graduated?: boolean;
   name?: string;
   bio?: string;
   avatar_media_id?: string;
@@ -625,6 +629,7 @@ export interface KeywordCreate {
   enabled?: boolean;
 }
 export interface Report {
+  target_title?: string;
   id: string;
   reporter: UserBrief | null;
   target_type: ReportTargetType;

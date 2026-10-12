@@ -25,6 +25,7 @@ import { MediaModule } from './media/media.module';
 import { SearchModule } from './search/search.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { AdminModule } from './admin/admin.module';
+import { FeedModule } from './feed/feed.module';
 import { RealtimeModule } from './realtime/realtime.module';
 
 /**
@@ -66,6 +67,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     FeedbackModule,
     AdminModule,
     RealtimeModule,
+    FeedModule,
   ],
 })
 export class AppModule implements NestModule {

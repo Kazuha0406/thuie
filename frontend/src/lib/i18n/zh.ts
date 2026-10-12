@@ -62,6 +62,7 @@ export const zh: Dictionary = {
   },
 
   nav: {
+    feed: "动态",
     home: "首页",
     infos: "信息",
     alumni: "校友",
@@ -168,9 +169,9 @@ export const zh: Dictionary = {
       subtitle: "在校生使用学号注册；验证码将发送到你填写的邮箱或手机号。",
       failed: "注册失败",
       fullName: "姓名",
-      role: "身份",
-      student: "在校生",
-      graduate: "校友",
+      role: "毕业状态",
+      student: "未毕业",
+      graduate: "已毕业",
       studentId: "学号",
       email: "邮箱",
       phone: "手机号",
@@ -575,8 +576,8 @@ export const zh: Dictionary = {
   },
 
   roles: {
-    student: "学生",
-    graduate: "毕业生",
+    student: "未毕业",
+    graduate: "已毕业",
     alumni: "校友",
     faculty: "教师",
     admin: "管理员",
@@ -839,6 +840,7 @@ export const zh: Dictionary = {
       subtitle: "对提交内容进行通过、驳回或下架处理。",
       filterTypeAria: "按类型筛选",
       optionTypes: {
+        event: "活动",
         all: "全部类型",
         info_post: "信息",
         forum_post: "论坛帖子",
@@ -846,6 +848,7 @@ export const zh: Dictionary = {
         alumni_profile: "资料",
       } as Record<string, string>,
       itemTypes: {
+        event: "活动",
         info_post: "信息",
         forum_post: "论坛帖子",
         comment: "评论",

@@ -1,5 +1,9 @@
 "use client";
 
+import { Discussion } from "@/components/common/discussion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EventParticipants } from "@/components/common/event-participants";
 import * as React from "react";
 import { useParams } from "next/navigation";
 import { Card, Chip, ProgressBar, Separator, Typography } from "@heroui/react";
@@ -20,6 +24,7 @@ import { useI18n } from "@/lib/i18n";
 export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const router = useRouter();
   const { t } = useI18n();
   const event = useEvent(id);
   const register = useRegisterEvent(id);
@@ -50,7 +55,7 @@ export default function EventDetailPage() {
               <div className="space-y-1 text-sm text-muted">
                 <p className="flex items-center gap-2"><CalendarDays size={16} /> {formatDateTime(data.starts_at)}{data.ends_at ? ` – ${formatDateTime(data.ends_at)}` : ""}</p>
                 <p className="flex items-center gap-2"><MapPin size={16} /> {data.location || t.eventDetail.tbd}</p>
-                {data.organizer && <p className="flex items-center gap-2"><Users size={16} /> {data.organizer}</p>}
+                {data.created_by && <Link href={`/members/${data.created_by}`} className="flex items-center gap-2 text-accent hover:underline"><Users size={16} /> {data.organizer || (t.common.unknown)}</Link>}
               </div>
 
               {data.description && <p className="prose-body">{data.description}</p>}
@@ -92,7 +97,7 @@ export default function EventDetailPage() {
                     variant="primary"
                     pending={register.isPending}
                     isDisabled={data.status !== "published" || isFull}
-                    onPress={() => register.mutate()}
+                    onPress={() => router.push(`/events/${id}/register`)}
                   >
                     {data.status !== "published" ? t.eventDetail.notOpen : isFull ? t.eventDetail.full : t.eventDetail.register}
                   </PendingButton>
@@ -101,6 +106,8 @@ export default function EventDetailPage() {
               {(register.isError || cancel.isError) && (
                 <p className="text-sm text-danger">{apiErrorMessage(register.error ?? cancel.error)}</p>
               )}
+              <EventParticipants id={id} organizerId={data.created_by ?? null} />
+              <Discussion kind="event" id={id} />
             </Card.Content>
           </Card>
         )}

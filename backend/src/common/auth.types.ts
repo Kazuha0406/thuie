@@ -20,12 +20,12 @@ export type TargetType = 'info' | 'profile' | 'post' | 'comment';
 export type MediaKind = 'image' | 'avatar' | 'attachment';
 export type MediaOwnerType = 'info_post' | 'forum_post' | 'alumni_profile';
 export type ConversationKind = 'direct' | 'group';
-export type EventStatus = 'draft' | 'published' | 'cancelled' | 'archived';
+export type EventStatus = 'pending' | 'rejected' | 'draft' | 'published' | 'cancelled' | 'archived';
 export type RegistrationStatus = 'registered' | 'attended' | 'cancelled';
 export type MentorProfileStatus = 'pending' | 'active' | 'paused';
 export type FeedbackStatus = 'open' | 'answered' | 'closed';
 export type Platform = 'ios' | 'android';
-export type ModerationTargetType = 'info_post' | 'forum_post' | 'comment' | 'alumni_profile';
+export type ModerationTargetType = 'event' | 'info_post' | 'forum_post' | 'comment' | 'alumni_profile';
 export type ReportTargetType = 'info_post' | 'forum_post' | 'comment' | 'alumni_profile' | 'user';
 export type OtpPurpose = 'register_verify' | 'password_reset';
 

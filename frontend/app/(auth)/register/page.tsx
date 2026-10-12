@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/common/password-input";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,8 @@ export default function RegisterPage() {
   const set = <K extends keyof RegisterRequest>(k: K, v: RegisterRequest[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const mismatch = confirmPassword !== form.password;
   const err = register.error;
   const isApi = err instanceof ApiError;
   const badPassword = form.password.length > 0 && !PASSWORD_RULE.test(form.password);
@@ -67,8 +70,9 @@ export default function RegisterPage() {
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            const identifier = form.email || form.phone || form.student_id || "";
-            register.mutate(form, {
+            if (mismatch || !confirmPassword) return;
+            const identifier = form.phone || form.email || form.student_id || "";
+            register.mutate({ ...form, confirm_password: confirmPassword }, {
               onSuccess: (res) =>
                 router.push(
                   `/verify?identifier=${encodeURIComponent(identifier)}${
@@ -99,7 +103,7 @@ export default function RegisterPage() {
             ]}
           />
 
-          {form.role === "student" && (
+          {(
             <TextField
               name="student_id"
               isDisabled={register.isPending}
@@ -149,7 +153,7 @@ export default function RegisterPage() {
             />
           )}
 
-          {form.role === "student" && (
+          {(
             <TextField name="grade_year" isDisabled={register.isPending}>
               <Label>{t.auth.register.gradeYear}</Label>
               <Input
@@ -162,21 +166,25 @@ export default function RegisterPage() {
 
           <TextField
             name="password"
-            type="password"
             isDisabled={register.isPending}
             isInvalid={!!passwordErrMsg}
           >
             <Label>{t.auth.password}</Label>
-            <Input value={form.password} onChange={(e) => set("password", e.target.value)} />
+            <PasswordInput value={form.password} onChange={v => set("password", v)} disabled={register.isPending} autoComplete="new-password" />
             <Description>{t.auth.register.passwordHint}</Description>
             <FieldError>{passwordErrMsg}</FieldError>
           </TextField>
 
+          <div className="space-y-2">
+            <label>{locale === "zh" ? "确认密码" : "Confirm password"}</label>
+            <PasswordInput name="confirm_password" value={confirmPassword} onChange={setConfirmPassword} disabled={register.isPending} autoComplete="new-password" />
+            {confirmPassword && mismatch && <p role="alert" className="text-sm text-danger">{locale === "zh" ? "两次密码不一致" : "Passwords do not match"}</p>}
+          </div>
           <PendingButton
             type="submit"
             variant="primary"
             pending={register.isPending}
-            isDisabled={badPassword}
+            isDisabled={badPassword || mismatch || !confirmPassword}
             className="w-full"
           >
             {t.auth.register.title}

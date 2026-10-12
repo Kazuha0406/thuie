@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { EventsService } from '../services/events.service';
-import { AuthUser, CurrentUser, Roles } from '../../common/decorators';
-import { CheckInDto, CreateEventDto, EventQueryDto, UpdateEventDto } from '../dto/event.dto';
+import { AuthUser, CurrentUser, Roles, RequiresStrategy, RequiresVerified } from '../../common/decorators';
+import { RegisterEventDto, CheckInDto, CreateEventDto, EventQueryDto, UpdateEventDto } from '../dto/event.dto';
 
 /** §6.10 campus events: public list/detail + registration + tickets. */
 @Controller('events')
@@ -9,8 +9,8 @@ export class EventsController {
   constructor(private readonly events: EventsService) {}
 
   @Get()
-  list(@Query() query: EventQueryDto) {
-    return this.events.list(query);
+  list(@Query() query: EventQueryDto, @CurrentUser() user: AuthUser) {
+    return this.events.list(query, user);
   }
 
   @Get(':id')
@@ -30,7 +30,8 @@ export class EventsController {
     return this.events.attendees(id);
   }
 
-  @Roles('admin', 'admin_super')
+  @RequiresStrategy('can_post_forum')
+  @RequiresVerified()
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateEventDto) {
     return this.events.create(dto, user.id);
@@ -43,8 +44,8 @@ export class EventsController {
   }
 
   @Post(':id/register')
-  register(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.events.register(user, id);
+  register(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: RegisterEventDto) {
+    return this.events.register(user, id, dto);
   }
 
   @Delete(':id/register')

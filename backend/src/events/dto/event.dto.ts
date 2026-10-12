@@ -49,6 +49,14 @@ export class UpdateEventDto {
   @IsOptional() @IsString() @MaxLength(20000) description?: string;
 }
 
+export class RegisterEventDto {
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(1, 100) participant_name!: string;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(1, 200) contact!: string;
+  @IsOptional() @IsString() @MaxLength(2000) notes?: string;
+}
+
 /** §6.10 `POST /events/:id/check-in` — organizer submits a scanned ticket. */
 export class CheckInDto {
   @IsString()

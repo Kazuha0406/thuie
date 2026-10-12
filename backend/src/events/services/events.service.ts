@@ -1,3 +1,4 @@
+import { ModerationService } from '../../moderation/services/moderation.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,7 +10,7 @@ import { EventStatus } from '../../common/auth.types';
 import { clampLimit, decodeCursor, encodeCursor } from '../../common/pagination/cursor';
 import { cursorPage } from '../../common/pagination/page';
 import { hmacSha256, safeEqual, uuid } from '../../common/util/tokens';
-import { CreateEventDto, EventQueryDto, UpdateEventDto } from '../dto/event.dto';
+import { RegisterEventDto, CreateEventDto, EventQueryDto, UpdateEventDto } from '../dto/event.dto';
 
 interface TicketPayload {
   e: string;
@@ -31,6 +32,7 @@ export class EventsService {
     @InjectRepository(CampusEvent) private readonly events: Repository<CampusEvent>,
     @InjectRepository(EventRegistration) private readonly regs: Repository<EventRegistration>,
     config: ConfigService,
+    private readonly moderation: ModerationService,
   ) {
     this.secret = config.get<string>('ticket.secret') ?? 'dev-only-ticket-secret';
     this.ttlSec = (config.get<number>('ticket.ttlMin') ?? 10) * 60;
@@ -41,7 +43,7 @@ export class EventsService {
 
   // --------------------------------------------------------------- read side --
 
-  async list(query: EventQueryDto) {
+  async list(query: EventQueryDto, user: AuthUser) {
     const limit = clampLimit(query.limit);
     const cursor = decodeCursor(query.cursor);
     const status = query.status ?? 'published';
@@ -49,9 +51,10 @@ export class EventsService {
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.cover_media', 'cover')
       .where('e.status = :status', { status });
+    if (!user.is_admin && status !== 'published') qb.andWhere('e.created_by = :viewer', { viewer: user.id });
     if (query.type) qb.andWhere('e.type = :type', { type: query.type });
     if (query.starts_at) qb.andWhere('e.starts_at >= :from', { from: new Date(query.starts_at) });
-    if (cursor?.v) qb.andWhere('(e.starts_at, e.id) < (:cv, :cid)', { cv: new Date(String(cursor.v)), cid: String(cursor.id ?? '0') });
+    if (cursor?.v) qb.andWhere('(e.starts_at, e.id) > (:cv, :cid)', { cv: new Date(String(cursor.v)), cid: String(cursor.id ?? '0') });
     const rows = await qb.orderBy('e.starts_at', 'ASC').addOrderBy('e.id', 'ASC').take(limit + 1).getMany();
     const last = rows[limit - 1];
     const next = rows.length > limit && last ? encodeCursor({ v: last.starts_at.toISOString(), id: last.id }) : null;
@@ -119,6 +122,9 @@ export class EventsService {
         user_id: r.user_id,
         name: r.user?.name ?? null,
         student_id: r.user?.student_id ?? null,
+        participant_name: r.participant_name,
+        contact: r.contact,
+        notes: r.notes,
         avatar_url: r.user?.avatar_media?.url ?? null,
         status: r.status,
         registered_at: r.registered_at,
@@ -156,6 +162,7 @@ export class EventsService {
 
   async create(dto: CreateEventDto, actorId: string) {
     const starts = new Date(dto.starts_at);
+    const scanned = await this.moderation.scan([dto.title, dto.description, dto.organizer]);
     const saved = await this.events.save(
       this.events.create({
         title: dto.title,
@@ -167,11 +174,12 @@ export class EventsService {
         type: dto.type ?? 'other',
         capacity: dto.capacity ?? null,
         cover_media_id: dto.cover_media_id ?? null,
-        status: (dto.status ?? 'draft') as EventStatus,
+        status: scanned === 'pending' ? 'pending' : (dto.status ?? 'draft') as EventStatus,
         timezone: dto.timezone ?? 'Asia/Shanghai',
         created_by: actorId,
       }),
     );
+    await this.moderation.record({ targetType: 'event', targetId: saved.id, actorId, action: 'submitted' });
     return this.view(await this.load(saved.id), true, 0);
   }
 
@@ -186,12 +194,15 @@ export class EventsService {
     if (dto.starts_at !== undefined) e.starts_at = new Date(dto.starts_at);
     if (dto.ends_at !== undefined) e.ends_at = new Date(dto.ends_at);
     if (dto.capacity !== undefined) e.capacity = dto.capacity;
+    const scanned = await this.moderation.scan([e.title, e.description, e.organizer]);
+    if (scanned === 'pending') e.status = 'pending';
     await this.events.save(e);
+    await this.moderation.record({ targetType: 'event', targetId: e.id, actorId: user.id, action: 'resubmitted' });
     return this.view(await this.load(id), true, await this.registeredCount(id));
   }
 
   /** Capacity-safe register. Idempotent: a re-register of an active seat is a no-op. */
-  async register(user: AuthUser, eventId: string) {
+  async register(user: AuthUser, eventId: string, dto: RegisterEventDto) {
     await this.events.manager.transaction(async (m: EntityManager) => {
       // Row lock serialises concurrent registers against the same event.
       const event = await m
@@ -215,6 +226,9 @@ export class EventsService {
       }
 
       if (existing) {
+        existing.participant_name = dto.participant_name;
+        existing.contact = dto.contact;
+        existing.notes = dto.notes ?? null;
         existing.status = 'registered';
         existing.registered_at = new Date();
         existing.ticket_nonce = existing.ticket_nonce ?? uuid();
@@ -222,7 +236,7 @@ export class EventsService {
         await m.save(existing);
       } else {
         await m.save(
-          m.create(EventRegistration, { event_id: eventId, user_id: user.id, status: 'registered', ticket_nonce: uuid() }),
+          m.create(EventRegistration, { event_id: eventId, user_id: user.id, participant_name: dto.participant_name, contact: dto.contact, notes: dto.notes ?? null, status: 'registered', ticket_nonce: uuid() }),
         );
       }
     });
@@ -342,6 +356,7 @@ export class EventsService {
       timezone: e.timezone,
       cover_url: e.cover_media?.url ?? null,
       created_by: e.created_by,
+      author: e.creator ? { id: e.creator.id, name: e.creator.name, role: e.creator.role } : null,
       created_at: e.created_at,
       ...(full ? { description: e.description } : {}),
     };

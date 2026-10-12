@@ -11,7 +11,8 @@
     "db:setup": "node database/run-sql.mjs init",
     "db:reset": "node database/run-sql.mjs reset",
     "db:seed": "node database/seed.mjs",
-    "db:migrate": "npm run db:setup && npm run db:seed",
+    "db:migrate": "node database/run-sql.mjs migrate",
+    "test:mvp": "node test/mvp-feedback.smoke.mjs",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest"
   },

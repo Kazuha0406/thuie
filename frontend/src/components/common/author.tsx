@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Avatar } from "@heroui/react";
 import { BadgeCheck } from "lucide-react";
 import type { UserBrief } from "@/lib/api/types";
@@ -26,7 +27,7 @@ export function Author({ user, verified }: { user: UserBrief | null; verified?: 
         <Avatar.Fallback>{user.name?.[0] ?? "?"}</Avatar.Fallback>
       </Avatar>
       <span className="flex items-center gap-1 text-sm text-muted">
-        {user.name}
+        <Link href={`/members/${user.id}`} className="hover:underline">{user.name}</Link>
         {verified && <VerifiedBadge />}
       </span>
     </div>

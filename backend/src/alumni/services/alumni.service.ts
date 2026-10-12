@@ -315,7 +315,7 @@ export class AlumniService {
   private canSee(user: AuthUser, a: AlumniProfile): boolean {
     if (a.user_id === user.id || user.is_admin) return true;
     if (a.visibility === 'admin_only') return false;
-    if (a.visibility === 'student_only') return user.role === 'student';
+    if (a.visibility === 'student_only') return user.role === 'student' || user.role === 'graduate';
     return true;
   }
 

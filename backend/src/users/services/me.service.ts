@@ -5,7 +5,7 @@ import {
   Comment, Department, ForumPost, InfoPost, NotificationPreference, PushToken, User,
 } from '../../entities';
 import { ApiException } from '../../common/error/api.exception';
-import { NotificationType } from '../../common/auth.types';
+import { NotificationType, STRATEGY_FLAGS } from '../../common/auth.types';
 import { cursorPage } from '../../common/pagination/page';
 import { clampLimit, decodeCursor, encodeCursor } from '../../common/pagination/cursor';
 import { serializeUser } from '../../common/serializers/user.serializer';
@@ -69,6 +69,7 @@ export class MeService {
     const user = await this.users.findOne({ where: { id: userId }, relations: { department: true, avatar_media: true } });
     if (!user) throw ApiException.notFound();
 
+    if (dto.graduated !== undefined && !user.is_admin) user.role = dto.graduated ? 'graduate' : 'student';
     if (dto.name !== undefined) user.name = dto.name;
     if (dto.bio !== undefined) user.bio = dto.bio;
     if (dto.grade_year !== undefined) user.grade_year = dto.grade_year;
@@ -85,7 +86,6 @@ export class MeService {
     // Students cannot self-promote to graduate: conversion is an admin action
     // (§6.17 /admin/users/:id/convert).
     if (dto.graduation_year !== undefined) {
-      if (user.role === 'student') throw ApiException.permissionDenied('Student→graduate conversion is an admin action');
       user.graduation_year = dto.graduation_year;
     }
     if (dto.department !== undefined) {
@@ -109,7 +109,7 @@ export class MeService {
     if (user.is_admin) {
       return { role: user.role, can_view_info: true, can_view_internal: true, can_view_alumni: true, can_view_forum: true, can_submit_info: true, can_post_forum: true, can_comment: true, can_create_profile: true };
     }
-    return { role: user.role, ...(strategy?.toClientShape() ?? {}) };
+    return { role: user.role, ...(strategy?.toClientShape() ?? {}), ...Object.fromEntries(STRATEGY_FLAGS.map(flag => [flag, strategy?.has(flag) ?? false])) };
   }
 
   // ------------------------------------------------------------ sessions ---

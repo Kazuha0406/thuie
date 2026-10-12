@@ -22,7 +22,7 @@ type CountCol = 'like_count' | 'bookmark_count';
 interface ViewerState {
   liked: boolean;
   bookmarked: boolean;
-  /** Up to the 3 most recent likers — the avatar stack next to the like count. */
+  /** Kept empty for older clients; liker identities are private. */
   liked_by: { id: string; name: string; role: string; avatar_url: string | null }[];
 }
 
@@ -231,31 +231,14 @@ export class PostsService {
     return map;
   }
 
-  /** Three independent existence probes + the recent-likers page, in one round. */
+  /** Only the viewer's own engagement state is returned. */
   private async viewerState(postId: string, userId: string): Promise<ViewerState> {
     const m = this.posts.manager;
-    const [liked, bookmarked, likers] = await Promise.all([
+    const [liked, bookmarked] = await Promise.all([
       m.getRepository(PostLike).findOne({ where: { post_id: postId, user_id: userId } }),
       m.getRepository(Favorite).findOne({ where: { user_id: userId, target_type: 'post', target_id: postId } }),
-      m.getRepository(PostLike).find({
-        where: { post_id: postId },
-        relations: { user: { avatar_media: true } },
-        order: { created_at: 'DESC' },
-        take: 3,
-      }),
     ]);
-    return {
-      liked: !!liked,
-      bookmarked: !!bookmarked,
-      liked_by: likers
-        .filter((l) => !!l.user)
-        .map((l) => ({
-          id: l.user.id,
-          name: l.user.name,
-          role: l.user.role,
-          avatar_url: l.user.avatar_media?.url ?? null,
-        })),
-    };
+    return { liked: !!liked, bookmarked: !!bookmarked, liked_by: [] };
   }
 
   /** Idempotent per-viewer view counter (§6.8). */

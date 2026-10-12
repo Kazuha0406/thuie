@@ -10,6 +10,13 @@ import { applyVisibility } from '../../common/util/visibility';
 import { SearchType, SuggestQueryDto, SuggestScope } from '../dto/search.dto';
 
 /** A hit shape is deliberately loose — the client renders per `type`. */
+function snippet(content: string | null, term: string): string {
+  const text = content ?? '';
+  const match = text.toLocaleLowerCase().indexOf(term.slice(1, -1).toLocaleLowerCase());
+  const start = Math.max(0, match - 70);
+  return (start ? '…' : '') + text.slice(start, start + 240) + (text.length > start + 240 ? '…' : '');
+}
+
 type SearchItem = Record<string, unknown>;
 type Suggestion = { type: 'tag' | 'skill' | 'department' | 'user'; label: string; value: string; avatar_url?: string | null };
 
@@ -57,7 +64,7 @@ export class SearchService {
       .andWhere('(i.title ILIKE :q OR i.content ILIKE :q)', { q: term });
     applyVisibility(qb, 'i', user);
     const rows = await this.limited(qb, 'i.created_at', limit);
-    return rows.map((i) => ({ type: 'info', id: i.id, title: i.title, subtitle: i.category, url: `/infos/${i.id}` }));
+    return rows.map((i) => ({ type: 'info', id: i.id, title: i.title, snippet: snippet(i.content, term), subtitle: i.category, url: `/infos/${i.id}` }));
   }
 
   private async searchPosts(term: string, limit: number): Promise<SearchItem[]> {
@@ -69,7 +76,7 @@ export class SearchService {
       'p.created_at',
       limit,
     );
-    return rows.map((p) => ({ type: 'post', id: p.id, title: p.title, subtitle: null, url: `/posts/${p.id}` }));
+    return rows.map((p) => ({ type: 'post', id: p.id, title: p.title, snippet: snippet(p.content, term), subtitle: null, url: `/posts/${p.id}` }));
   }
 
   private async searchProfiles(user: AuthUser, term: string, limit: number): Promise<SearchItem[]> {
@@ -83,6 +90,7 @@ export class SearchService {
       type: 'profile',
       id: a.id,
       title: a.display_name,
+      snippet: snippet([a.work_title, a.company, a.bio].filter(Boolean).join(" · "), term),
       subtitle: [a.work_title, a.company].filter(Boolean).join(' · ') || null,
       url: `/alumni/${a.id}`,
     }));
@@ -97,7 +105,7 @@ export class SearchService {
       'e.starts_at',
       limit,
     );
-    return rows.map((e) => ({ type: 'event', id: e.id, title: e.title, subtitle: e.location, url: `/events/${e.id}` }));
+    return rows.map((e) => ({ type: 'event', id: e.id, title: e.title, snippet: snippet(e.description, term), subtitle: e.location, url: `/events/${e.id}` }));
   }
 
   private async searchFaculty(term: string, limit: number): Promise<SearchItem[]> {
@@ -108,7 +116,7 @@ export class SearchService {
       'f.created_at',
       limit,
     );
-    return rows.map((f) => ({ type: 'faculty', id: f.id, title: f.name, subtitle: f.title, url: `/faculty/${f.id}` }));
+    return rows.map((f) => ({ type: 'faculty', id: f.id, title: f.name, snippet: snippet([f.title, f.research_area, f.bio].filter(Boolean).join(" · "), term), subtitle: f.title, url: `/faculty/${f.id}` }));
   }
 
   // ---------------------------------------------------------------- suggest --

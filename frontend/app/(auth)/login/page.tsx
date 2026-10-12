@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/common/password-input";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import { useLogin } from "@/features/auth";
 export default function LoginPage() {
   const router = useRouter();
   const login = useLogin();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [handle, setHandle] = React.useState("");
   const [password, setPassword] = React.useState("");
 
@@ -67,12 +68,9 @@ export default function LoginPage() {
             />
             <FieldError>{handleErr}</FieldError>
           </TextField>
-          <TextField name="password" type="password" isDisabled={login.isPending} isInvalid={!!passwordErr}>
+          <TextField name="password" isDisabled={login.isPending} isInvalid={!!passwordErr}>
             <Label>{t.auth.password}</Label>
-            <Input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <PasswordInput value={password} onChange={setPassword} disabled={login.isPending} />
             <FieldError>{passwordErr}</FieldError>
           </TextField>
           <PendingButton type="submit" variant="primary" pending={login.isPending} className="w-full">

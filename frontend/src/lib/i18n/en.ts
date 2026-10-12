@@ -67,6 +67,7 @@ export const en = {
   },
 
   nav: {
+    feed: "Feed",
     home: "Home",
     infos: "Infos",
     alumni: "Alumni",
@@ -177,9 +178,9 @@ export const en = {
         "Students sign up with their ID; a verification code is sent to the email or phone you provide.",
       failed: "Registration failed",
       fullName: "Full name",
-      role: "Role",
-      student: "Student",
-      graduate: "Graduate",
+      role: "Graduation status",
+      student: "Not graduated",
+      graduate: "Graduated",
       studentId: "Student ID",
       email: "Email",
       phone: "Phone",
@@ -590,8 +591,8 @@ export const en = {
 
   /** Role values (chip on the profile card, registration). */
   roles: {
-    student: "Student",
-    graduate: "Graduate",
+    student: "Not graduated",
+    graduate: "Graduated",
     alumni: "Alumni",
     faculty: "Faculty",
     admin: "Admin",
@@ -856,6 +857,7 @@ export const en = {
       subtitle: "Approve, reject or take down submitted content.",
       filterTypeAria: "Filter by type",
       optionTypes: {
+        event: "Events",
         all: "All types",
         info_post: "Infos",
         forum_post: "Forum posts",
@@ -863,6 +865,7 @@ export const en = {
         alumni_profile: "Profiles",
       } as Record<string, string>,
       itemTypes: {
+        event: "Event",
         info_post: "Info",
         forum_post: "Forum post",
         comment: "Comment",

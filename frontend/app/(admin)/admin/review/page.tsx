@@ -1,5 +1,6 @@
 "use client";
 
+import { ModerationDrawer, type PreviewTarget } from "@/components/common/moderation-drawer";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -31,11 +32,12 @@ type Pending = { items: ReviewQueueItem[]; kind: "reject" | "takedown" } | null;
 
 const rowKey = (i: ReviewQueueItem) => `${i.target_type}:${i.target_id}`;
 
-const REVIEW_TYPES = ["info_post", "forum_post", "comment", "alumni_profile"];
+const REVIEW_TYPES = ["info_post", "forum_post", "comment", "alumni_profile", "event"];
 const initialType = (param: string | null) => (REVIEW_TYPES.includes(param ?? "") ? param! : "all");
 
 function ReviewInner() {
   const { t } = useI18n();
+  const [preview, setPreview] = React.useState<PreviewTarget | null>(null);
   const searchParams = useSearchParams();
   const paramType = searchParams.get("type");
   const [page, setPage] = React.useState(1);
@@ -152,6 +154,7 @@ function ReviewInner() {
 
   return (
     <div className="space-y-4">
+      <ModerationDrawer target={preview} onClose={() => setPreview(null)} />
       <div className="flex flex-wrap items-center gap-3">
         <Button isIconOnly size="sm" variant="tertiary" isPending={isFetching} aria-label={t.common.refresh} onPress={() => refetch()}>
           {({ isPending }) => (isPending ? <Spinner color="current" size="sm" /> : <RefreshCw size={16} />)}
@@ -163,7 +166,7 @@ function ReviewInner() {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {(["all", "info_post", "forum_post", "comment", "alumni_profile"] as const).map((key) => (
+        {(["all", "info_post", "forum_post", "comment", "alumni_profile", "event"] as const).map((key) => (
           <Button key={key} size="sm" variant={type === key ? "primary" : "tertiary"} onPress={() => { setType(key); setPage(1); }}>
             {t.admin.review.optionTypes[key]}
           </Button>
@@ -249,7 +252,7 @@ function ReviewInner() {
                       <SelectionCheckbox label={t.admin.review.selectRow(item.title || t.admin.review.untitled)} />
                     </Table.Cell>
                     <Table.Cell>
-                      <p className="truncate font-medium">{item.title || t.admin.review.untitled}</p>
+                      <button className="text-left font-medium text-accent hover:underline" onClick={() => setPreview({ type: item.target_type, id: item.target_id })}>{item.title || t.admin.review.untitled}</button>
                     </Table.Cell>
                     <Table.Cell>
                       <div className="flex min-w-0 items-center gap-2">

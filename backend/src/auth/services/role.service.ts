@@ -37,7 +37,7 @@ export class RoleService {
 
   async forRole(role: Role): Promise<RoleStrategy | null> {
     await this.ensureFresh();
-    return this.cache.get(role) ?? null;
+    return this.cache.get(role === 'student' ? 'graduate' : role) ?? null;
   }
 
   /** Guard-facing check: admins pass, everyone else consults the flag. */
@@ -75,6 +75,10 @@ export class RoleService {
     }
     row.updated_by = actorId;
     const saved = await this.repo.save(row);
+    if (role === 'student' || role === 'graduate') {
+      const shared = Object.fromEntries(STRATEGY_FLAGS.map(flag => [flag, saved[flag]]));
+      await this.repo.update({ role: role === 'student' ? 'graduate' : 'student' }, { ...shared, updated_by: actorId });
+    }
     this.invalidate();
     return saved;
   }

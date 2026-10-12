@@ -27,6 +27,8 @@ export class CommentsService {
   ) {}
 
   async thread(postId: string, user: AuthUser) {
+    const post = await this.posts.findOne({ where: { id: postId } });
+    if (!post || (post.status !== 'approved' && !user.is_admin && post.author_id !== user.id)) throw ApiException.notFound();
     const rows = await this.comments.find({
       where: { forum_post_id: postId },
       relations: { author: { avatar_media: true } },
@@ -98,7 +100,7 @@ export class CommentsService {
     if (presented !== undefined && !Number.isNaN(presented) && presented !== c.version) throw ApiException.versionConflict();
     if (dto.content !== undefined) {
       c.content = dto.content;
-      await this.moderation.scan([c.content]); // re-run filter; a block throws before saving
+      c.status = await this.moderation.scan([c.content]);
     }
     c.version = bumpVersion(c.version);
     await this.comments.save(c);
@@ -114,7 +116,7 @@ export class CommentsService {
       c.status = 'taken_down';
       await this.comments.save(c);
       await this.moderation.record({ targetType: 'comment', targetId: c.id, actorId: user.id, action: 'taken_down' });
-      if (wasApproved) await this.bumpCounts(c.forum_post_id, -1, false);
+      if (wasApproved && c.forum_post_id) await this.bumpCounts(c.forum_post_id, -1, false);
     }
     return { taken_down: true };
   }
@@ -124,7 +126,7 @@ export class CommentsService {
   }
 
   private async bumpCounts(postId: string, delta: number, touchLastComment: boolean) {
-    const set: Record<string, unknown> = { comment_count: () => `GREATEST(comment_count + ${delta}, 0)` };
+    const set: Record<string, unknown> = { comment_count: () => `(SELECT count(*) FROM comments WHERE forum_post_id = :id AND status = 'approved')` };
     if (touchLastComment) set.last_comment_at = new Date();
     await this.posts.createQueryBuilder().update(ForumPost).set(set as any).where('id = :id', { id: postId }).execute();
   }

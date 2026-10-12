@@ -27,8 +27,8 @@ if (!DATABASE_URL) {
 }
 
 const mode = process.argv[2] || 'init';
-if (!['init', 'reset'].includes(mode)) {
-  console.error(`unknown mode "${mode}" (expected init|reset)`);
+if (!['init', 'reset', 'migrate'].includes(mode)) {
+  console.error(`unknown mode "${mode}" (expected init|reset|migrate)`);
   process.exit(1);
 }
 
@@ -41,10 +41,13 @@ try {
     console.log('dropping schema public …');
     await client.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO CURRENT_USER;');
   }
-  const files = readdirSync(join(here, 'init')).filter((f) => f.endsWith('.sql')).sort();
+  await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+  const files = readdirSync(join(here, 'init')).filter((f) => f.endsWith('.sql') && (mode !== 'migrate' || f >= '003_')).sort();
   for (const f of files) {
+    if (f >= "003_" && (await client.query("SELECT 1 FROM schema_migrations WHERE name=$1", [f])).rowCount) continue;
     console.log(`running ${f} …`);
     await client.query(readFileSync(join(here, 'init', f), 'utf8'));
+    if (f >= '003_') await client.query('INSERT INTO schema_migrations(name) VALUES($1) ON CONFLICT DO NOTHING', [f]);
   }
   console.log('✔ database scripts complete');
 } catch (err) {

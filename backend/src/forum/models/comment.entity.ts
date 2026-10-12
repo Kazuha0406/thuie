@@ -15,8 +15,14 @@ export class Comment {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
-  @Column({ type: 'bigint', transformer: bigint })
-  forum_post_id: string;
+  @Column({ type: 'bigint', nullable: true, transformer: bigint })
+  forum_post_id: string | null;
+
+  @Column({ type: 'bigint', nullable: true, transformer: bigint })
+  info_post_id: string | null;
+
+  @Column({ type: 'bigint', nullable: true, transformer: bigint })
+  event_id: string | null;
 
   @ManyToOne(() => ForumPost, (p) => p.comments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'forum_post_id' })

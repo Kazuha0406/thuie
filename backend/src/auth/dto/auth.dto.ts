@@ -55,6 +55,7 @@ export class LogoutDto {
 export const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/;
 
 export class RegisterDto {
+  @IsOptional() @IsString() @Length(8, 64) confirm_password?: string;
   @Transform(trim)
   @IsString()
   @Length(1, 100)

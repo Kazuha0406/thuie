@@ -1,10 +1,10 @@
 "use client";
 
+import { Author } from "@/components/common/author";
 import * as React from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Avatar,
-  AvatarGroup,
   Button,
   Card,
   Chip,
@@ -182,9 +182,6 @@ export default function ForumDetailPage() {
   const data = post.data;
   const isOwner = !!data?.author && data.author.id === me?.id;
   const items = comments.data?.data ?? [];
-  const likers = data?.liked_by ?? [];
-  const likeOverflow = data ? Math.max(0, data.like_count - likers.length) : 0;
-  const likerNames = likers.map((u) => u.name).join(", ");
 
   const focusComment = searchParams.get("comment") === "1";
   React.useEffect(() => {
@@ -273,6 +270,7 @@ export default function ForumDetailPage() {
                   </div>
                 </div>
 
+                <Author user={data.author} />
                 {reporting && (
                   <div className="flex flex-wrap items-center gap-2">
                     <TextField aria-label={t.infoDetail.reasonAria} className="min-w-0 flex-1">
@@ -316,22 +314,6 @@ export default function ForumDetailPage() {
                           <ThumbsUp size={16} fill={data.liked ? "currentColor" : "none"} />
                           {data.like_count}
                         </Button>
-                        {data.like_count > 0 && likers.length > 0 && (
-                          <AvatarGroup
-                            size="sm"
-                            overlap="ring"
-                            title={t.forumDetail.likedBy(likerNames)}
-                            aria-label={t.forumDetail.likedBy(likerNames)}
-                          >
-                            {likers.map((u) => (
-                              <Avatar key={u.id}>
-                                {u.avatar_url ? <Avatar.Image src={u.avatar_url} alt={u.name} /> : null}
-                                <Avatar.Fallback>{u.name?.[0] ?? "?"}</Avatar.Fallback>
-                              </Avatar>
-                            ))}
-                            {likeOverflow > 0 && <AvatarGroup.Count>+{likeOverflow}</AvatarGroup.Count>}
-                          </AvatarGroup>
-                        )}
                         </div>
                         <Button
                           size="sm"

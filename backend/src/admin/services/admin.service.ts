@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
-  AlumniProfile, Comment, Feedback, ForumPost, IdentityChangeLog, InfoPost, Report, User,
+  CampusEvent, AlumniProfile, Comment, Feedback, ForumPost, IdentityChangeLog, InfoPost, Report, User,
 } from '../../entities';
 import { ApiException } from '../../common/error/api.exception';
 import { hashPassword } from '../../common/util/password-hash';
@@ -97,10 +97,24 @@ export class AdminService {
 
   async reportsQueue(query: PageQuery & { status?: Report['status'] }) {
     const { rows, total } = await this.reports.queue({ status: query.status }, query.limit, query.offset());
-    return offsetPage(rows, query.page, query.limit, total);
+    const items = await Promise.all(rows.map(async r => ({ ...r, target_title: r.target_type === 'user' ? (await this.users.findOne({ where: { id: r.target_id } }))?.name : (await this.loadTarget(r.target_type, r.target_id))?.title })));
+    return offsetPage(items, query.page, query.limit, total);
   }
 
   async resolveReport(actor: AuthUser, id: string, outcome: 'ignored' | 'deleted' | 'restricted', note?: string) {
+    const report = await this.reportRepo.findOne({ where: { id } });
+    if (!report) throw ApiException.notFound('Report not found');
+    if (report.status !== 'open') throw ApiException.conflict('Report already resolved', 'already_resolved');
+    if (outcome === 'deleted') {
+      if (report.target_type === 'user') throw ApiException.validationFailed([{ field: 'outcome', message: 'Use restrict for a user report' }]);
+      await this.takedown(actor, report.target_type, report.target_id, note);
+    } else if (outcome === 'restricted') {
+      const authorId = report.target_type === 'user' ? report.target_id : (await this.loadTarget(report.target_type, report.target_id))?.authorId;
+      if (!authorId) throw ApiException.notFound('Author not found');
+      const author = await this.users.findOne({ where: { id: authorId } });
+      if (!author || author.is_admin) throw ApiException.permissionDenied('Cannot restrict an administrator');
+      await this.updateUserStatus(actor, authorId, 'posting_restricted');
+    }
     const view = await this.reports.resolve(id, actor.id, outcome, note);
     await this.oplog.log({ adminId: actor.id, action: `report.resolve`, targetType: 'report', targetId: id, detail: { outcome } });
     return view;
@@ -385,6 +399,10 @@ export class AdminService {
     const want = (t: ModerationTargetType) => !type || type === t;
     const items: ReviewItem[] = [];
 
+    if (want('event')) {
+      const rows = await this.infos.manager.getRepository(CampusEvent).find({ where: { status: 'pending' }, relations: { creator: true } });
+      rows.forEach(r => items.push({ target_type: 'event', target_id: r.id, title: r.title, submitted_at: r.created_at, author: this.authorBrief(r.creator) }));
+    }
     if (want('info_post')) {
       const rows = await this.infos.find({ where: { status: 'pending' }, relations: { author: true }, order: { created_at: 'DESC' } });
       rows.forEach((r) => items.push({ target_type: 'info_post', target_id: r.id, title: r.title, submitted_at: r.created_at, author: this.authorBrief(r.author) }));
@@ -404,12 +422,13 @@ export class AdminService {
     return items;
   }
 
-  private async loadTarget(type: ModerationTargetType, id: string): Promise<{ authorId: string | null } | null> {
+  private async loadTarget(type: ModerationTargetType, id: string): Promise<{ authorId: string | null; title: string } | null> {
     switch (type) {
-      case 'info_post': { const r = await this.infos.findOne({ where: { id } }); return r ? { authorId: r.author_id } : null; }
-      case 'forum_post': { const r = await this.posts.findOne({ where: { id } }); return r ? { authorId: r.author_id } : null; }
-      case 'comment': { const r = await this.comments.findOne({ where: { id } }); return r ? { authorId: r.author_id } : null; }
-      case 'alumni_profile': { const r = await this.alumni.findOne({ where: { id } }); return r ? { authorId: r.user_id } : null; }
+      case 'event': { const r = await this.infos.manager.getRepository(CampusEvent).findOne({ where: { id } }); return r ? { authorId: r.created_by, title: r.title } : null; }
+      case 'info_post': { const r = await this.infos.findOne({ where: { id } }); return r ? { authorId: r.author_id, title: r.title } : null; }
+      case 'forum_post': { const r = await this.posts.findOne({ where: { id } }); return r ? { authorId: r.author_id, title: r.title } : null; }
+      case 'comment': { const r = await this.comments.findOne({ where: { id } }); return r ? { authorId: r.author_id, title: r.content.slice(0, 80) } : null; }
+      case 'alumni_profile': { const r = await this.alumni.findOne({ where: { id } }); return r ? { authorId: r.user_id, title: r.display_name } : null; }
     }
   }
 
@@ -420,6 +439,10 @@ export class AdminService {
   }
 
   private async applyStatus(type: ModerationTargetType, id: string, status: ContentStatus | ProfileStatus, reason: string | null): Promise<void> {
+    if (type === 'event') {
+      await this.infos.manager.getRepository(CampusEvent).update({ id }, { status: status === 'approved' ? 'published' : status === 'taken_down' ? 'cancelled' : 'rejected' });
+      return;
+    }
     const patch = { status, ...(reason !== null ? { reject_reason: reason } : {}) };
     if (type === 'info_post') await this.infos.update({ id }, patch as never);
     else if (type === 'forum_post') await this.posts.update({ id }, patch as never);
@@ -428,7 +451,7 @@ export class AdminService {
   }
 
   private noun(type: ModerationTargetType): string {
-    return { info_post: 'information post', forum_post: 'post', comment: 'comment', alumni_profile: 'profile' }[type];
+    return { event: 'event', info_post: 'information post', forum_post: 'post', comment: 'comment', alumni_profile: 'profile' }[type];
   }
 
   private authorBrief(u?: User | null) {

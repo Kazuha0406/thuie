@@ -1,5 +1,7 @@
 "use client";
 
+import { Discussion } from "@/components/common/discussion";
+import { Author } from "@/components/common/author";
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -211,6 +213,8 @@ export default function InfoDetailPage() {
                   </ConfirmButton>
                 </div>
               )}
+              <Author user={post.author} />
+              <Discussion kind="info" id={id} />
             </Card.Content>
           </Card>
         )}

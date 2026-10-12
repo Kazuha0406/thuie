@@ -28,6 +28,7 @@ export function serializeUser(user: User, opts: { includeContact?: boolean } = {
     id: user.id,
     name: user.name,
     role: user.role,
+    graduated: user.role === 'graduate',
     status: user.status,
     department_id: user.department_id,
     department: user.department
@@ -69,6 +70,7 @@ export function serializeUserBrief(user: Pick<User, 'id' | 'name' | 'role'> & { 
     id: user.id,
     name: user.name,
     role: user.role,
+    graduated: user.role === 'graduate',
     avatar_url: (user as any)?.avatar_media?.url ?? null,
   };
 }

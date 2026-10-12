@@ -100,6 +100,15 @@ export class EventRegistration {
   @Column({ type: 'uuid', nullable: true })
   ticket_nonce: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  participant_name: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  contact: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
   /** Set on check-in ⇒ a second scan of the same ticket is rejected. */
   @Column({ type: 'timestamptz', nullable: true })
   used_at: Date | null;

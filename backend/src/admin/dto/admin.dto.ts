@@ -6,7 +6,7 @@ import { PageQuery } from '../../common/dto/query.dto';
 import { PASSWORD_RULE } from '../../auth/dto/auth.dto';
 import { KeywordAction, ModerationTargetType, ReportStatus, Role, UserStatus } from '../../common/auth.types';
 
-const MOD_TYPES: ModerationTargetType[] = ['info_post', 'forum_post', 'comment', 'alumni_profile'];
+const MOD_TYPES: ModerationTargetType[] = ['info_post', 'forum_post', 'comment', 'alumni_profile', 'event'];
 
 /** §6.17 `GET /admin/review`. */
 export class ReviewQueueQueryDto extends PageQuery {

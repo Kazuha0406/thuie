@@ -92,6 +92,7 @@ export class AuthService {
    * row the admin user list surfaces). Graduates only need the OTP.
    */
   async register(dto: RegisterDto, req: Request): Promise<AuthResult & { otp_code?: string | null }> {
+    if (dto.confirm_password !== undefined && dto.confirm_password !== dto.password) throw ApiException.validationFailed([{ field: 'confirm_password', message: 'Passwords do not match' }]);
     const role = dto.role;
     if (role !== 'student' && role !== 'graduate') {
       throw ApiException.validationFailed([{ field: 'role', message: 'self-signup is limited to student/graduate' }]);
@@ -101,9 +102,6 @@ export class AuthService {
     const phone = dto.phone?.trim() || null;
     const email = dto.email?.trim() || null;
 
-    if (role === 'student' && !studentId) {
-      throw ApiException.validationFailed([{ field: 'student_id', message: 'required for student signup' }]);
-    }
     if (!phone && !email) {
       throw ApiException.validationFailed([{ field: 'email', message: 'a phone or email is required for verification' }]);
     }

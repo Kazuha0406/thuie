@@ -6,6 +6,7 @@ const VISIBILITIES = ['student_only', 'all', 'admin_only'] as const;
 
 /** §6.2 `PATCH /me` — only these fields are self-editable. */
 export class UpdateMeDto {
+  @IsOptional() @IsBoolean() graduated?: boolean;
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()

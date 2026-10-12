@@ -22,7 +22,7 @@ const PERM_KEYS: (keyof Omit<RoleStrategy, "role">)[] = [
 ];
 
 function StrategyCard({ initial }: { initial: RoleStrategy }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [draft, setDraft] = React.useState<RoleStrategy>(initial);
   const update = useUpdateRoleStrategy();
 
@@ -34,7 +34,7 @@ function StrategyCard({ initial }: { initial: RoleStrategy }) {
     <Card>
       <Card.Content className="gap-3">
         <div className="flex items-center justify-between">
-          <Typography type="h6" className="capitalize">{t.roles[draft.role] ?? draft.role.replace("_", " ")}</Typography>
+          <Typography type="h6" className="capitalize">{draft.role === "graduate" ? (locale === "zh" ? "成员（在校生及校友）" : "Members (students and alumni)") : t.roles[draft.role]}</Typography>
           <Chip size="sm" variant="tertiary">{PERM_KEYS.filter((k) => draft[k]).length}/{PERM_KEYS.length}</Chip>
         </div>
         {update.isError && <ApiErrorAlert error={update.error} />}
@@ -80,11 +80,11 @@ function StrategyCard({ initial }: { initial: RoleStrategy }) {
 }
 
 export default function AdminRolesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const user = useCurrentUser();
   const { data, isLoading, isError, error, refetch } = useRoleStrategies();
 
-  const items = data ?? [];
+  const items = (data ?? []).filter(s => s.role !== "student");
 
   if (user?.role !== "admin_super") {
     return <p className="p-8 text-center text-sm text-muted">{t.admin.roles.noAccess}</p>;

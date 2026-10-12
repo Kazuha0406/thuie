@@ -13,7 +13,7 @@ import { AuthUser } from '../decorators';
 export function visibleVisibilities(user: AuthUser | null | undefined): Visibility[] {
   if (!user) return ['all'];
   if (user.is_admin) return ['all', 'student_only', 'admin_only'];
-  if (user.role === 'student') return ['all', 'student_only'];
+  if (user.role === 'student' || user.role === 'graduate') return ['all', 'student_only'];
   return ['all'];
 }
 
@@ -25,7 +25,7 @@ export function applyVisibility<T extends ObjectLiteral>(qb: SelectQueryBuilder<
 
 /** Only students (and admins) may read `internal` category infos (§6.6). */
 export function canSeeInternal(user: AuthUser | null | undefined): boolean {
-  return Boolean(user && (user.is_admin || user.role === 'student'));
+  return Boolean(user && (user.is_admin || user.role === 'student' || user.role === 'graduate'));
 }
 
 /** Single-row check used by detail endpoints before returning a body. */
